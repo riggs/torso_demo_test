@@ -1,6 +1,7 @@
 {
   "name": "torso_demo",
   "version": "0.0.1",
+  "private": true,
   "description": "Test the code for the Torso Demo hardware",
   "main": "background.js",
   "dependencies": {

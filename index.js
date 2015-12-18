@@ -1,7 +1,7 @@
 "use strict";
 
 var Rx = require("rx");
-var HID = require("HID");
+var HID = require("rxchromehid");
 
 Rx.DOM.ready().subscribe(function () {
 

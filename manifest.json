@@ -1,0 +1,17 @@
+{
+  "name": "TorsoDemo",
+  "description": "Test for the Torso Demo code",
+  "version": "0.0.0",
+  "manifest_version": 2,
+  "app": {
+    "background": {
+      "scripts": [
+        "background.js"
+      ]
+    }
+  },
+  "permissions": [
+    "hid",
+    {"usbDevices": [{"vendorId": 1003, "productId": 8256}]}
+  ]
+}

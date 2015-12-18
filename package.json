@@ -1,0 +1,23 @@
+{
+  "name": "torso_demo",
+  "version": "0.0.1",
+  "description": "Test the code for the Torso Demo hardware",
+  "main": "background.js",
+  "dependencies": {
+    "rx": "^4.0.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/riggs/torso_demo_test.git"
+  },
+  "author": "riggs@umn.edu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/riggs/torso_demo_test/issues"
+  },
+  "homepage": "https://github.com/riggs/torso_demo_test#readme"
+}

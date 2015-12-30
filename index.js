@@ -1,9 +1,10 @@
 "use strict";
 
 var Rx = require("rx");
-var HID = require("rxchromehid");
+require("rx-dom");
+var Device = require("./device.js");
 
-Rx.DOM.ready().subscribe(function () {
+Rx.DOM.ready().subscribe(() => {
 
     // We use an inline data source in the example, usually data would
     // be fetched from a server
@@ -12,7 +13,14 @@ Rx.DOM.ready().subscribe(function () {
         totalPoints = 300,
         updateInterval = 30,
         HID_data = [],
+        update_frequency = 90,
         last_sample = Date.now();
+
+    var ui = {
+        log: null,
+        updateInterval: null,
+        //update_frequency: null,
+    };
 
     function updateRandomData(update_plot) {
 
@@ -41,43 +49,11 @@ Rx.DOM.ready().subscribe(function () {
         for (var i = 0; i < data.length; ++i) {
             res.push([i, data[i]])
         }
-        var results = Array({label: "Random", data: res});
+        var results = new Array({label: "Random", data: res});
         update_plot(results);
     }
 
-    function _initialize_USB_connection(poller) {
-        chrome.hid.getDevices({}, function (devinfos) {
-            console.log(devinfos);
-            chrome.hid.connect(devinfos[0].deviceId, function (conn) {
-                console.log(conn);
-                poller(conn.connectionId);
-            })
-        });
-    }
-
-    function initialize_USB_connection(poller) {
-        HID.getDevices({}).then(function (device_info) {
-            console.log(device_info);
-            return HID.connect(device_info[0].deviceId);
-        }).then(function (connection) {
-            poller(connection.connectionId);
-        })
-    }
-
-    var USB_connection = Rx.Observable.fromPromise(HID.getDevices({}))
-        .flatMap(function (devices) {
-            return devices;
-        }).map(function (device) {
-            return device.deviceId;
-        }).flatMap(function (device_id) {
-            return Rx.Observable.fromPromise(HID.connect(device_id));
-        }).map(function (connection) {
-            return connection.connectionId;
-        });
-
-
     function updateSensorData(update_plot) {
-
         var sensor_values = HID_data;
         //sensor_values = [sensor_values[1], sensor_values[6], sensor_values[4], sensor_values[7]];
         /*
@@ -112,15 +88,15 @@ Rx.DOM.ready().subscribe(function () {
     }
 
     function hex_parser(buffer) {
-        return Array.from(new Uint16Array(buffer))
-            .map(function (i) {
+        return Array.from(new Uint8Array(buffer))
+            .map(function(i) {
                 return Number.prototype.toString.call(i, 16).toUpperCase();
             })
-            .toString();
+            .join(" ");
     }
 
-    function HID_poller(USB_connection) {
-        chrome.hid.receive(USB_connection, function (rid, buffer) {
+    function USB_poller(USB_connection) {
+        chrome.hid.receive(USB_connection, function(rid, buffer) {
             /*
             var ADC_values = new DataView(buffer, 0, 8),     // 1st 8 bytes are 4 16-bit Ints
                 variance = new DataView(buffer, 8);         // Next 16 bytes are 4 32-bit Floats
@@ -146,14 +122,42 @@ Rx.DOM.ready().subscribe(function () {
             }
             */
 
-            setTimeout(function () {HID_poller(USB_connection)}, 0);
+            setTimeout(function() {USB_poller(USB_connection)}, 0);
+        });
+    }
+
+    function HID_poller(connection) {
+        connection.subscribe(device => {
+            function poll() {
+                device.receive()
+                    .subscribe(data => {
+                        switch (data.type) {
+                            case "event":
+                                logger(data.hex);
+                                break;
+                            case "raw_ADC":
+                                HID_data = data.value;
+                                break;
+                        }
+                    });
+                setTimeout(() => poll(), 0);
+            }
+
+            console.log("Device:");
+            console.log(device);
+            device.initialize()
+                .subscribe(time => {
+                    console.log("Time:" + time);
+                    setTimeout(() => poll(), 0);
+                });
         });
     }
 
 
     // Set up the control widget
 
-    $("#updateInterval").val(updateInterval).change(function () {
+    /*
+    $("#updateInterval").val(updateInterval).change(function() {
         var v = $(this).val();
         if (v && !isNaN(+v)) {
             updateInterval = +v;
@@ -165,6 +169,7 @@ Rx.DOM.ready().subscribe(function () {
             $(this).val("" + updateInterval);
         }
     });
+    */
 
     var plot = $.plot("#placeholder", [], {
         series: {
@@ -190,18 +195,51 @@ Rx.DOM.ready().subscribe(function () {
 
     function updater(data_function) {
         data_function(update_plot);
-        setTimeout(function () {updater(data_function);}, updateInterval);
+        setTimeout(function() {updater(data_function);}, updateInterval);
     }
 
-    //initialize_USB_connection(HID_poller);
-    USB_connection.subscribe(function (connection_id) {
-        HID_poller(connection_id);
-    });
+    function logger (message) {
+        ui.log.textContent += (message + "\n");
+        ui.log.scrollTop = ui.log.scrollHeight;
+    }
+
+    for (var k in ui) {
+        var element = document.getElementById(k);
+        if (!element) {
+            throw "Missing UI element: " + k;
+        }
+        ui[k] = element;
+    }
+
+    Rx.DOM.change(ui.updateInterval)
+        .pluck('target', 'value')
+        .map(number => {
+            if (number < 1) {
+                return 1;
+            } else if (number > 20000) {
+                return 20000;
+            } else {
+                return Math.floor(number);
+            }
+        })
+        .do(number => console.log(number))
+        //.debounce(200)
+        //.distinctUntilChanged()
+        .subscribe(value => {
+            updateInterval = value;
+        });
+
+    /*
+    Rx.DOM.change(ui.update_frequency)
+    .pluck('target', 'value')
+    .subscribe(value => {update_frequency = value;});
+    */
+
+
+    var filter = {};
+    HID_poller(Device(filter));
 
     updater(updateSensorData);
     //updater(updateRandomData);
 
-    // Add the Flot version string to the footer
-
-    $("#footer").prepend("Flot " + $.plot.version + " &ndash; ");
 });

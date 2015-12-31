@@ -6,8 +6,7 @@
   "main": "background.js",
   "dependencies": {
     "rx": "^4.0.7",
-    "rx-dom": "^7.0.3",
-    "rxchromehid": "^1.0.0"
+    "rx-dom": "^7.0.3"
   },
   "devDependencies": {},
   "scripts": {

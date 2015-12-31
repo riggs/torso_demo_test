@@ -95,31 +95,25 @@ Rx.DOM.ready().subscribe(() => {
     function HID_poller(connection) {
         connection.subscribe(device => {
             function poll() {
-                var receiving = true;
-                //while (receiving) {
-                    device.receive()
-                        .do(data => console.log(data))
-                        .subscribe(data => {
-                            switch (data.type) {
-                                case "ADC_spike_event":
-                                    logger("Location: " + data.location + " Value: " + data.value);
-                                    break;
-                                case "raw_ADC":
-                                    HID_data = data.value;
-                                    break;
-                                case "wire_touch_event":
-                                    logger("Duration: " + data.value);
-                                    break;
-                                case "null":
-                                    receiving = false;
-                                    break;
-                                default:
-                                    logger(data.hex);
-                            }
-                        });
-                    //if (receiving) {console.log("receiving");}
-                //}
-                [{respiratory_rate: 42.42},
+                device.receive()
+                    .do(data => console.log(data))
+                    .subscribe(data => {
+                        switch (data.type) {
+                            case "ADC_spike_event":
+                                logger("Location: " + data.location + " Value: " + data.value);
+                                break;
+                            case "raw_ADC":
+                                HID_data = data.value;
+                                break;
+                            case "wire_touch_event":
+                                logger("Duration: " + data.value);
+                                break;
+                            default:
+                                logger(data.hex);
+                        }
+                    });
+                [
+                    {respiratory_rate: 42.42},
                     {tidal_volume: 42.42},
                     {lung_volume_total: 42.42},
                     {lung_volume_left: 42.42},

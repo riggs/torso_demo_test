@@ -12,14 +12,11 @@ Rx.DOM.ready().subscribe(() => {
     var data = [],
         totalPoints = 300,
         updateInterval = 30,
-        HID_data = [],
-        update_frequency = 90,
-        last_sample = Date.now();
+        HID_data = [];
 
     var ui = {
         log: null,
-        updateInterval: null,
-        //update_frequency: null,
+        updateInterval: null
     };
 
     function updateRandomData(update_plot) {
@@ -95,51 +92,43 @@ Rx.DOM.ready().subscribe(() => {
             .join(" ");
     }
 
-    function USB_poller(USB_connection) {
-        chrome.hid.receive(USB_connection, function(rid, buffer) {
-            /*
-            var ADC_values = new DataView(buffer, 0, 8),     // 1st 8 bytes are 4 16-bit Ints
-                variance = new DataView(buffer, 8);         // Next 16 bytes are 4 32-bit Floats
-            var sensor_values = [];
-            for (var i = 0; i < 4; ++i) {
-                sensor_values.push(ADC_values.getUint16(i * 2, true));
-                sensor_values.push(variance.getFloat32(i * 4, true));
-            }
-            */
-            var ADC_values = new Uint16Array(buffer, 0, 4),     // 1st 8 bytes are 4 16-bit Ints
-                variance = new Float32Array(buffer, 8);         // Next 16 bytes are 4 32-bit Floats
-            HID_data = Array.from(ADC_values).concat(Array.from(variance));
-            //console.log(HID_data);
-            //console.log(hex_parser(buffer));
-
-            /*
-            var sensor_values = [];
-            var words = new Uint16Array(buffer);
-            var bytes = new Uint8Array(buffer);
-            for (var i = 0; i < words.length; ++i) {
-                sensor_values.push(bytes[2 * i] * 256 + bytes[2 * i + 1]);
-            HID_data = sensor_values;
-            }
-            */
-
-            setTimeout(function() {USB_poller(USB_connection)}, 0);
-        });
-    }
-
     function HID_poller(connection) {
         connection.subscribe(device => {
             function poll() {
-                device.receive()
-                    .subscribe(data => {
-                        switch (data.type) {
-                            case "event":
-                                logger(data.hex);
-                                break;
-                            case "raw_ADC":
-                                HID_data = data.value;
-                                break;
-                        }
-                    });
+                var receiving = true;
+                //while (receiving) {
+                    device.receive()
+                        .do(data => console.log(data))
+                        .subscribe(data => {
+                            switch (data.type) {
+                                case "ADC_spike_event":
+                                    logger("Location: " + data.location + " Value: " + data.value);
+                                    break;
+                                case "raw_ADC":
+                                    HID_data = data.value;
+                                    break;
+                                case "wire_touch_event":
+                                    logger("Duration: " + data.value);
+                                    break;
+                                case "null":
+                                    receiving = false;
+                                    break;
+                                default:
+                                    logger(data.hex);
+                            }
+                        });
+                    //if (receiving) {console.log("receiving");}
+                //}
+                [{respiratory_rate: 42.42},
+                    {tidal_volume: 42.42},
+                    {lung_volume_total: 42.42},
+                    {lung_volume_left: 42.42},
+                    {lung_volume_right: 42.42},
+                    {heart_rate: 42.42},
+                    {ART: 42.42}
+                ].forEach((obj, index, arr) => {
+                    device.send(obj).subscribe(() => {});
+                });
                 setTimeout(() => poll(), 0);
             }
 
@@ -153,24 +142,7 @@ Rx.DOM.ready().subscribe(() => {
         });
     }
 
-
-    // Set up the control widget
-
     /*
-    $("#updateInterval").val(updateInterval).change(function() {
-        var v = $(this).val();
-        if (v && !isNaN(+v)) {
-            updateInterval = +v;
-            if (updateInterval < 1) {
-                updateInterval = 1;
-            } else if (updateInterval > 20000) {
-                updateInterval = 20000;
-            }
-            $(this).val("" + updateInterval);
-        }
-    });
-    */
-
     var plot = $.plot("#placeholder", [], {
         series: {
             shadowSize: 0	// Drawing is faster without shadows
@@ -197,6 +169,7 @@ Rx.DOM.ready().subscribe(() => {
         data_function(update_plot);
         setTimeout(function() {updater(data_function);}, updateInterval);
     }
+    */
 
     function logger (message) {
         ui.log.textContent += (message + "\n");
@@ -229,17 +202,10 @@ Rx.DOM.ready().subscribe(() => {
             updateInterval = value;
         });
 
-    /*
-    Rx.DOM.change(ui.update_frequency)
-    .pluck('target', 'value')
-    .subscribe(value => {update_frequency = value;});
-    */
-
-
     var filter = {};
     HID_poller(Device(filter));
 
-    updater(updateSensorData);
+    //updater(updateSensorData);
     //updater(updateRandomData);
 
 });

@@ -3,7 +3,7 @@
  */
 "use strict";
 
-var HID = require(".RxHID.js");
+var HID = require("./RxHID.js");
 
 function hex_parser(buffer) {
     return Array.from(new Uint8Array(buffer))

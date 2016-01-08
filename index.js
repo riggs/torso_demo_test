@@ -121,10 +121,17 @@ Rx.DOM.ready().subscribe(() => {
                     {heart_rate: 42.42},
                     {ART: 42.42}
                 ].forEach((obj, index, arr) => {
-                    device.send(obj).subscribe(() => {});
+                    var dev = device.send(obj);
+                    if (chrome.runtime.lastError) {
+                        logger(chrome.runtime.lastError);
+                    }
+                    dev.subscribe(() => {},
+                    error => {
+                        logger(error);
+                    });
                 });
                 setTimeout(() => poll(), 0);
-            }
+            };
 
             console.log("Device:");
             console.log(device);

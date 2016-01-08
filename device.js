@@ -311,7 +311,7 @@ module.exports = function(filter) {
             .map(result => {
                 var report_ID = result.reportId,
                     buffer    = result.buffer;
-                //console.log(report_ID);
+                console.log("Received report ID: " + report_ID);
                 return reports[reports[report_ID]].input.decode(buffer);
             });
     }
